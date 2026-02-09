@@ -1,12 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\Posts;
+namespace App\Filament\Resources\Categories\RelationManagers;
 
-use App\Filament\Resources\Posts\Pages\CreatePost;
-use App\Filament\Resources\Posts\Pages\EditPost;
-use App\Filament\Resources\Posts\Pages\ListPosts;
-use App\Models\Post;
-use BackedEnum;
+use App\Filament\Resources\Posts\PostResource;
+use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -17,26 +14,24 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Resources\Resource;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class PostResource extends Resource
+class PostsRelationManager extends RelationManager
 {
-    protected static ?string $model = Post::class;
+    protected static string $relationship = 'posts';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
+    protected static ?string $relatedResource = PostResource::class;
 
-    protected static ?string $recordTitleAttribute = 'title';
-
-    public static function form(Schema $schema): Schema
+    public function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
@@ -47,9 +42,6 @@ class PostResource extends Resource
                         TextInput::make('slug')
                             ->required(),
                         ColorPicker::make('color')
-                            ->required(),
-                        Select::make('category_id')
-                            ->relationship('category', 'name')
                             ->required(),
                         MarkdownEditor::make('content')
                             ->default(null)
@@ -73,54 +65,36 @@ class PostResource extends Resource
             ])->columns(4);
     }
 
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
         return $table
             ->columns([
-                ImageColumn::make('thumbnail')
-                    ->disk('public')
-                    ->imageHeight(50)
-                    ->imageWidth(50),
-                ColorColumn::make('color')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('title')
                     ->searchable(),
                 TextColumn::make('tags')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('category.name')
-                    ->searchable()
-                    ->sortable(),
                 IconColumn::make('published')
                     ->boolean()
                     ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime('d M Y')
-                    ->sortable(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->modal()
+                    ->modalHeading(__('Post'))
+                    ->modalWidth(Width::FitContent),
+                DeleteAction::make()
+                ->hidden(),
             ])
             ->toolbarActions([
-                DeleteBulkAction::make(),
+                DeleteBulkAction::make()
+                ->hidden(),
+            ])
+            ->headerActions([
+                CreateAction::make()
+                    ->modal()
+                    ->modalHeading(__('Post'))
+                    ->modalWidth(Width::FitContent),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => ListPosts::route('/'),
-            'create' => CreatePost::route('/create'),
-            'edit' => EditPost::route('/{record}/edit'),
-        ];
     }
 }
