@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Posts;
 use App\Filament\Resources\Posts\Pages\CreatePost;
 use App\Filament\Resources\Posts\Pages\EditPost;
 use App\Filament\Resources\Posts\Pages\ListPosts;
+use App\Filament\Resources\Posts\RelationManagers\AuthorsRelationManager;
 use App\Models\Post;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
@@ -50,6 +51,8 @@ class PostResource extends Resource
                             ->required(),
                         Select::make('category_id')
                             ->relationship('category', 'name')
+                            ->searchable()
+                            ->preload()
                             ->required(),
                         MarkdownEditor::make('content')
                             ->default(null)
@@ -69,6 +72,13 @@ class PostResource extends Resource
                         Toggle::make('published')
                             ->default(false),
                     ]),
+                    Section::make('Authors')->schema([
+                        Select::make('authors')
+                            ->multiple()
+                            ->relationship('authors', 'name')
+                            ->searchable()
+                            ->preload()
+                    ])->visibleOn('create'),
                 ])->columnSpan(1),
             ])->columns(4);
     }
@@ -92,6 +102,12 @@ class PostResource extends Resource
                 TextColumn::make('category.name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('main_author')
+                    ->label('Author')
+                    ->state(function (Post $record): string {
+                        return $record->authors
+                            ->firstWhere('pivot.order', 1)?->name ?? '-';
+                    }),
                 IconColumn::make('published')
                     ->boolean()
                     ->sortable(),
@@ -100,8 +116,11 @@ class PostResource extends Resource
                     ->sortable(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                ->label('')
+                ->icon(''),
+                DeleteAction::make()
+                ->label(''),
             ])
             ->toolbarActions([
                 DeleteBulkAction::make(),
@@ -111,7 +130,7 @@ class PostResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            AuthorsRelationManager::class,
         ];
     }
 
