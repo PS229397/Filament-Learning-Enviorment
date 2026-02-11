@@ -6,6 +6,7 @@ use App\Filament\Resources\Posts\Pages\CreatePost;
 use App\Filament\Resources\Posts\Pages\EditPost;
 use App\Filament\Resources\Posts\Pages\ListPosts;
 use App\Filament\Resources\Posts\RelationManagers\AuthorsRelationManager;
+use App\Models\Category;
 use App\Models\Post;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
@@ -21,13 +22,20 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Query\Builder;
 
 class PostResource extends Resource
 {
@@ -41,8 +49,11 @@ class PostResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Create a Post')
-                    ->schema([
+                Tabs::make('Create a post')->tabs([
+                    Tab::make('Title')
+                        ->icon('heroicon-s-pencil-square')
+                        ->iconPosition(IconPosition::After)
+                        ->schema([
                         TextInput::make('title')
                             ->required(),
                         TextInput::make('slug')
@@ -54,32 +65,27 @@ class PostResource extends Resource
                             ->searchable()
                             ->preload()
                             ->required(),
+                    ])->columns(2)->columnSpanFull(),
+                    Tab::make('Content')
+                        ->icon('heroicon-s-document-text')
+                        ->iconPosition(IconPosition::After)
+                        ->schema([
                         MarkdownEditor::make('content')
                             ->default(null)
                             ->columnSpanFull(),
-                    ])->columnSpan(3)->columns(2),
-
-                Group::make()->schema([
-                    Section::make('Image')
-                        ->collapsible()
+                    ]),
+                    Tab::make('Metadata')
+                        ->icon('heroicon-s-photo')
+                        ->iconPosition(IconPosition::After)
                         ->schema([
                             FileUpload::make('thumbnail')
                                 ->disk('public')
                                 ->columnSpanFull(),
+                            TagsInput::make('tags'),
+                            Toggle::make('published')
+                                ->default(false),
                         ]),
-                    Section::make('Meta')->schema([
-                        TagsInput::make('tags'),
-                        Toggle::make('published')
-                            ->default(false),
-                    ]),
-                    Section::make('Authors')->schema([
-                        Select::make('authors')
-                            ->multiple()
-                            ->relationship('authors', 'name')
-                            ->searchable()
-                            ->preload()
-                    ])->visibleOn('create'),
-                ])->columnSpan(1),
+                ])->columnSpanFull()->persistTabInQueryString(),
             ])->columns(4);
     }
 
@@ -114,6 +120,18 @@ class PostResource extends Resource
                 TextColumn::make('created_at')
                     ->dateTime('d M Y')
                     ->sortable(),
+            ])
+            ->filters([
+                TernaryFilter::make('published')
+                    ->label('')
+                    ->trueLabel('Published')
+                    ->falseLabel('Not published')
+                    ->placeholder('All'),
+                SelectFilter::make('category_id')
+                    ->label('Category')
+                    ->relationship('category', 'name')
+                    ->multiple()
+                    ->preload(),
             ])
             ->recordActions([
                 EditAction::make()
