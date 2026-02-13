@@ -9,6 +9,15 @@ class Comment extends Model
 {
     public $guarded = [];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Comment $comment): void {
+            if (! $comment->user_id && auth()->check()) {
+                $comment->user_id = auth()->id();
+            }
+        });
+    }
+
     public function commentable()
     {
         return $this->morphTo();

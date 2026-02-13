@@ -14,7 +14,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\MorphToSelect;
 use Filament\Forms\Components\MorphToSelect\Type;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -26,18 +25,21 @@ class CommentResource extends Resource
 {
     protected static ?string $model = Comment::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'comment';
+
+    public static function canAccess(): bool
+    {
+        return false;
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload(),
                 TextInput::make('comment'),
                 MorphToSelect::make('commentable')
                     ->label('comment')
@@ -54,8 +56,25 @@ class CommentResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('user.name'),
-                TextColumn::make('commentable_type'),
-                TextColumn::make('commentable_id'),
+                TextColumn::make('commentable')
+                    ->label('Comment on')
+                    ->state(function (Comment $record): string {
+                        $target = $record->commentable;
+
+                        if ($target instanceof Post) {
+                            return 'Post: ' . $target->title;
+                        }
+
+                        if ($target instanceof User) {
+                            return 'User: ' . ($target->name ?? $target->email);
+                        }
+
+                        if ($target instanceof Comment) {
+                            return 'Comment #' . $target->id;
+                        }
+
+                        return '-';
+                    }),
                 TextColumn::make('comment'),
             ])
             ->filters([

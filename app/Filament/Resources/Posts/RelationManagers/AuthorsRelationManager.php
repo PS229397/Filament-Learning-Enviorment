@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Posts\RelationManagers;
 
+use App\Models\User;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -11,6 +12,7 @@ use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -21,11 +23,27 @@ class AuthorsRelationManager extends RelationManager
 {
     protected static string $relationship = 'authors';
 
+    protected static bool $shouldSkipAuthorization = true;
+
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('name')
+                Select::make('name')
+                    ->options(
+                        User::query()
+                            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_EDITOR])
+                            ->orderBy('name')
+                            ->pluck('name', 'name')
+                            ->all()
+                    )
+                    ->searchable()
+                    ->preload()
                     ->required(),
                 TextInput::make('order')
                     ->numeric()
@@ -39,31 +57,34 @@ class AuthorsRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->defaultSort('order')
             ->columns([
-                TextColumn::make('name')
-                    ->searchable(),
+                TextColumn::make('name'),
                 TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('order')
-                    ->sortable(),
+                    ->label('Email address'),
+                TextColumn::make('order'),
             ])
             ->filters([
                 //
             ])
             ->headerActions([
                 AttachAction::make()
+                    ->recordSelectOptionsQuery(fn ($query) => $query->whereIn('role', [User::ROLE_ADMIN, User::ROLE_EDITOR]))
                     ->schema(fn (AttachAction $action): array =>[
                     $action->getRecordSelect(),
                     TextInput::make('order')->numeric()->required(),
-                ])->preloadRecordSelect(),
+                ])
+                    ->preloadRecordSelect()
+                    ->visible(fn (): bool => auth()->user()?->isEditor() ?? false),
             ])
             ->recordActions([
-                EditAction::make(),
-                DetachAction::make(),
+                EditAction::make()
+                    ->visible(fn (): bool => auth()->user()?->isEditor() ?? false),
+                DetachAction::make()
+                    ->visible(fn (): bool => auth()->user()?->isEditor() ?? false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DetachBulkAction::make(),
+                    DetachBulkAction::make()
+                        ->visible(fn (): bool => auth()->user()?->isEditor() ?? false),
                 ]),
             ]);
     }

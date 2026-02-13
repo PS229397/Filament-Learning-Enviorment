@@ -10,6 +10,7 @@ use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -34,6 +35,10 @@ class UserResource extends Resource
                 ->required()
                 ->maxLength(255)
                 ->email(),
+                Select::make('role')
+                ->required()
+                ->options(User::roleOptions())
+                ->default(User::ROLE_EDITOR),
                 TextInput::make('password')
                 ->required()
                 ->maxLength(255)
@@ -51,6 +56,9 @@ class UserResource extends Resource
                     ->sortable(),
                 TextColumn::make('email')
                     ->searchable()
+                    ->sortable(),
+                TextColumn::make('role')
+                    ->badge()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime('D, d M, Y')

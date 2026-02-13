@@ -2,15 +2,13 @@
 
 namespace App\Filament\Resources\Posts\RelationManagers;
 
+use App\Models\Comment;
 use Filament\Actions\AssociateAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\DissociateAction;
-use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -21,17 +19,21 @@ class CommentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'comments';
 
+    protected static bool $shouldSkipAuthorization = true;
+
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload(),
                 TextInput::make('comment')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -40,18 +42,27 @@ class CommentsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('comment')
             ->columns([
-                TextColumn::make('comment'),
                 TextColumn::make('user.name'),
+                TextColumn::make('comment'),
             ])
             ->filters([
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->mutateDataUsing(function (array $data): array {
+                        $data['user_id'] = auth()->id();
+
+                        return $data;
+                    }),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->visible(fn (Comment $record): bool => $record->user_id === auth()->id())
+                    ->authorize(fn (Comment $record): bool => $record->user_id === auth()->id()),
+                DeleteAction::make()
+                    ->visible(fn (Comment $record): bool => $record->user_id === auth()->id() || (auth()->user()?->isAdmin() ?? false))
+                    ->authorize(fn (Comment $record): bool => $record->user_id === auth()->id() || (auth()->user()?->isAdmin() ?? false)),
             ]);
     }
 }

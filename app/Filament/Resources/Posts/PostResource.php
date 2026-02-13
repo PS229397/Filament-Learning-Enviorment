@@ -5,14 +5,18 @@ namespace App\Filament\Resources\Posts;
 use App\Filament\Resources\Posts\Pages\CreatePost;
 use App\Filament\Resources\Posts\Pages\EditPost;
 use App\Filament\Resources\Posts\Pages\ListPosts;
+use App\Filament\Resources\Posts\Pages\ViewPost;
 use App\Filament\Resources\Posts\RelationManagers\AuthorsRelationManager;
 use App\Filament\Resources\Posts\RelationManagers\CommentsRelationManager;
 use App\Models\Category;
 use App\Models\Post;
 use BackedEnum;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
@@ -117,17 +121,12 @@ class PostResource extends Resource
                     }),
                 IconColumn::make('published')
                     ->boolean()
-                    ->sortable(),
+                    ->hidden(fn () => ! auth()->user()?->isEditor()),
                 TextColumn::make('created_at')
                     ->dateTime('d M Y')
                     ->sortable(),
             ])
             ->filters([
-                TernaryFilter::make('published')
-                    ->label('')
-                    ->trueLabel('Published')
-                    ->falseLabel('Not published')
-                    ->placeholder('All'),
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->relationship('category', 'name')
@@ -135,9 +134,8 @@ class PostResource extends Resource
                     ->preload(),
             ])
             ->recordActions([
-                EditAction::make()
-                ->label('')
-                ->icon(''),
+                EditAction::make(),
+                ViewAction::make(),
                 DeleteAction::make()
                 ->label(''),
             ])
@@ -146,11 +144,55 @@ class PostResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Post')
+                    ->schema([
+                        TextEntry::make('title')
+                            ->hiddenLabel(),
+                        TextEntry::make('content')
+                            ->hiddenLabel()
+                            ->prose(),
+                    ])
+                    ->columnSpan(4)
+                    ->extraAttributes([
+                        'class' => 'min-h-full',
+                    ]),
+                Section::make('')
+                    ->schema([
+                        ImageEntry::make('thumbnail')
+                            ->disk('public')
+                            ->hiddenLabel()
+                            ->height('100%')
+                            ->width('100%'),
+                        Group::make([
+                            TextEntry::make('category.name')
+                                ->label('Category'),
+                            TextEntry::make('tags')
+                                ->formatStateUsing(function ($state): string {
+                                    if (is_array($state)) {
+                                        return implode(', ', $state);
+                                    }
+
+                                    if (blank($state)) {
+                                        return '-';
+                                    }
+
+                                    return (string) $state;
+                                }),
+                        ]),
+                    ])
+            ])
+            ->columns(5);
+    }
+
     public static function getRelations(): array
     {
         return [
-            AuthorsRelationManager::class,
             CommentsRelationManager::class,
+            AuthorsRelationManager::class,
         ];
     }
 
@@ -159,6 +201,7 @@ class PostResource extends Resource
         return [
             'index' => ListPosts::route('/'),
             'create' => CreatePost::route('/create'),
+            'view' => ViewPost::route('/{record}'),
             'edit' => EditPost::route('/{record}/edit'),
         ];
     }
