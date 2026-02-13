@@ -6,6 +6,7 @@ use App\Filament\Resources\Posts\Pages\CreatePost;
 use App\Filament\Resources\Posts\Pages\EditPost;
 use App\Filament\Resources\Posts\Pages\ListPosts;
 use App\Filament\Resources\Posts\RelationManagers\AuthorsRelationManager;
+use App\Filament\Resources\Posts\RelationManagers\CommentsRelationManager;
 use App\Models\Category;
 use App\Models\Post;
 use BackedEnum;
@@ -149,6 +150,7 @@ class PostResource extends Resource
     {
         return [
             AuthorsRelationManager::class,
+            CommentsRelationManager::class,
         ];
     }
 
