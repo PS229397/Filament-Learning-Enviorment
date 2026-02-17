@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Categories;
+namespace App\Filament\Resources;
 
 use App\Filament\Resources\Categories\Pages\CreateCategory;
 use App\Filament\Resources\Categories\Pages\EditCategory;
@@ -12,10 +12,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use UnitEnum;
 
 class CategoryResource extends Resource
 {
@@ -25,12 +28,20 @@ class CategoryResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    protected static string|null|UnitEnum $navigationGroup = 'Blog';
+
+    protected static ?int $navigationSort = 2;
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (string $state, Set $set) {
+                        $set('slug', Str::slug($state));
+                    }),
                 TextInput::make('slug')
                     ->required(),
             ]);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Posts;
+namespace App\Filament\Resources;
 
 use App\Filament\Resources\Posts\Pages\CreatePost;
 use App\Filament\Resources\Posts\Pages\EditPost;
@@ -8,11 +8,8 @@ use App\Filament\Resources\Posts\Pages\ListPosts;
 use App\Filament\Resources\Posts\Pages\ViewPost;
 use App\Filament\Resources\Posts\RelationManagers\AuthorsRelationManager;
 use App\Filament\Resources\Posts\RelationManagers\CommentsRelationManager;
-use App\Models\Category;
 use App\Models\Post;
 use BackedEnum;
-use Filament\Infolists\Components\ImageEntry;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -24,11 +21,14 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
@@ -36,17 +36,20 @@ use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Str;
+use UnitEnum;
 
 class PostResource extends Resource
 {
     protected static ?string $model = Post::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
+
+    protected static string|null|UnitEnum $navigationGroup = 'Blog';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'title';
 
@@ -60,7 +63,11 @@ class PostResource extends Resource
                         ->iconPosition(IconPosition::After)
                         ->schema([
                         TextInput::make('title')
-                            ->required(),
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (string $state, Set $set) {
+                                $set('slug', Str::slug($state));
+                            }),
                         TextInput::make('slug')
                             ->required(),
                         ColorPicker::make('color')

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Comments\Pages;
 
-use App\Filament\Resources\Comments\CommentResource;
+use App\Filament\Resources\CommentResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 

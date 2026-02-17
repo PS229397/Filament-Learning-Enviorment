@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Users;
+namespace App\Filament\Resources;
 
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
@@ -17,12 +17,17 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+
+    protected static string|null|UnitEnum $navigationGroup = 'Users';
+
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {
@@ -59,6 +64,13 @@ class UserResource extends Resource
                     ->sortable(),
                 TextColumn::make('role')
                     ->badge()
+                    ->color(function (string $state):string {
+                        return match ($state) {
+                            'admin'=>'danger', //red
+                            'editor'=>'info', //blue
+                            'user'=>'success', //green
+                        };
+                    })
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime('D, d M, Y')

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Categories\RelationManagers;
 
-use App\Filament\Resources\Posts\PostResource;
+use App\Filament\Resources\PostResource;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;

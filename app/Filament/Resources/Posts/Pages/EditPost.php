@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Posts\Pages;
 
-use App\Filament\Resources\Posts\PostResource;
+use App\Filament\Resources\PostResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
