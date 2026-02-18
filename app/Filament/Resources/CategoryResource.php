@@ -30,6 +30,8 @@ class CategoryResource extends Resource
 
     protected static string|null|UnitEnum $navigationGroup = 'Blog';
 
+    protected static ?string $navigationParentItem = 'Posts';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
