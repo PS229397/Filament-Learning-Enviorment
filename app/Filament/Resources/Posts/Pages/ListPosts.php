@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Posts\Pages;
 
 use App\Filament\Resources\PostResource;
+use App\Filament\Widgets\ChartWidget;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -36,5 +37,14 @@ class ListPosts extends ListRecords
         else {
             return [];
         }
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            ChartWidget::make([
+                'types' => ['posts'],
+            ]),
+        ];
     }
 }

@@ -5,14 +5,20 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
+use App\Filament\Resources\Users\Pages\ViewUser;
+use App\Filament\Resources\Users\Widgets\UserChartWidget;
+use App\Filament\Resources\Users\Widgets\UserStatsWidget;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Livewire;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -77,9 +83,9 @@ class UserResource extends Resource
                     ->sortable(),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->label('Edit user')
-                    ->icon('heroicon-o-pencil'),
+                ViewAction::make()
+                    ->label('View user')
+                    ->icon('heroicon-o-eye'),
                 DeleteAction::make()
                     ->label('Delete user')
                     ->icon('heroicon-o-trash'),
@@ -87,6 +93,29 @@ class UserResource extends Resource
             ->toolbarActions([
                     DeleteBulkAction::make(),
             ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('User details')
+                    ->schema([
+                        TextEntry::make('name'),
+                        TextEntry::make('email'),
+                        TextEntry::make('role')
+                            ->badge(),
+                        TextEntry::make('created_at')
+                            ->dateTime('D, d M, Y'),
+                    ])
+                    ->columns(2)
+                    ->columnSpan(2),
+                Livewire::make(UserStatsWidget::class)
+                    ->columnSpan(1),
+                Livewire::make(UserChartWidget::class)
+                    ->columnSpanFull(),
+            ])
+            ->columns(3);
     }
 
     public static function getRelations(): array
@@ -101,6 +130,7 @@ class UserResource extends Resource
         return [
             'index' => ListUsers::route('/'),
             'create' => CreateUser::route('/create'),
+            'view' => ViewUser::route('/{record}'),
             'edit' => EditUser::route('/{record}/edit'),
         ];
     }

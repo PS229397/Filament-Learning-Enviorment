@@ -9,6 +9,19 @@ class CreatePost extends CreateRecord
 {
     protected static string $resource = PostResource::class;
 
+    protected function afterCreate(): void
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return;
+        }
+
+        $this->record->authors()->syncWithoutDetaching([
+            $user->getKey() => ['order' => 1],
+        ]);
+    }
+
     protected function getRedirectUrl(): string
     {
         return static::getResource()::getUrl('index');

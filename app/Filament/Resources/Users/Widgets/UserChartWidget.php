@@ -1,18 +1,23 @@
 <?php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\Resources\Users\Widgets;
 
-use App\Models\Category;
+use App\Models\Comment;
 use App\Models\Post;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Widgets\ChartWidget as BaseChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Flowframe\Trend\Trend;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
-class ChartWidget extends BaseChartWidget
+class UserChartWidget extends BaseChartWidget
 {
     use InteractsWithPageFilters;
+
+    public ?User $record;
 
     public ?array $types = null;
 
@@ -26,31 +31,31 @@ class ChartWidget extends BaseChartWidget
 
     protected ?string $maxHeight = '350px';
 
-
-    protected function getSource(string $type): string
+    protected function getSourceQuery(string $type): Builder
     {
+        $userId = $this->record?->getKey();
+
         return match ($type) {
-            'users' => User::class,
-            'posts' => Post::class,
-            'categories' => Category::class,
+            'posts' => Post::query()
+                ->whereHas('authors', fn (Builder $query) => $query->whereKey($userId)),
+            'comments' => Comment::query()
+                ->where('user_id', $userId),
+            default => throw new InvalidArgumentException("Unsupported source type [{$type}]"),
         };
     }
 
     protected function getChartData(string $type): array
     {
         $filters = $this->pageFilters ?? [];
-
         $startFilter = data_get($filters, 'startDate');
         $endFilter = data_get($filters, 'endDate');
 
         $start = filled($startFilter) ? Carbon::parse($startFilter) : now()->startOfYear();
         $end = filled($endFilter) ? Carbon::parse($endFilter) : now()->endOfYear();
 
-        $modelClass = $this->getSource($type);
-
         $rangeInDays = $start->diffInDays($end);
 
-        $trend = Trend::model($modelClass)->between(start: $start, end: $end);
+        $trend = Trend::query(clone $this->getSourceQuery($type))->between(start: $start, end: $end);
 
         if ($rangeInDays <= 62) {
             $trend = $trend->perDay();
@@ -65,12 +70,13 @@ class ChartWidget extends BaseChartWidget
 
         $points = $trend->count();
 
-        $runningTotal = $modelClass::query()
+        $runningTotal = (clone $this->getSourceQuery($type))
             ->where('created_at', '<', $start)
             ->count();
 
         $data = $points->map(function ($point) use (&$runningTotal) {
             $runningTotal += $point->aggregate;
+
             return $runningTotal;
         })->toArray();
 
@@ -111,20 +117,23 @@ class ChartWidget extends BaseChartWidget
 
     protected function getData(): array
     {
+        if (! $this->record) {
+            return [
+                'datasets' => [],
+                'labels' => [],
+            ];
+        }
+
         $filterType = data_get($this->pageFilters ?? [], 'filterType');
 
         $series = [
-            'users' => [
-                'label' => 'Users joined',
-                'color' => '#22c55e',
-            ],
             'posts' => [
                 'label' => 'Blog posts created',
                 'color' => '#3b82f6',
             ],
-            'categories' => [
-                'label' => 'Categories added',
-                'color' => '#ff7979',
+            'comments' => [
+                'label' => 'Comments written',
+                'color' => '#22c55e',
             ],
         ];
 
@@ -134,6 +143,10 @@ class ChartWidget extends BaseChartWidget
 
         if (is_array($this->types) && $this->types !== []) {
             $types = array_values(array_intersect($types, $this->types));
+        }
+
+        if (! Gate::forUser($this->record)->allows('create', Post::class)) {
+            $types = array_values(array_filter($types, fn (string $type): bool => $type !== 'posts'));
         }
 
         $datasets = [];
@@ -147,6 +160,7 @@ class ChartWidget extends BaseChartWidget
             }
 
             $color = $series[$type]['color'];
+
             $datasets[] = [
                 'label' => $series[$type]['label'],
                 'data' => $chartData['data'],
