@@ -106,15 +106,33 @@ class PostResource extends Resource
         return $table
             ->columns([
                 ImageColumn::make('thumbnail')
+                    ->label('Image')
                     ->disk('public')
-                    ->imageHeight(50)
-                    ->imageWidth(50),
+                    ->imageHeight(35)
+                    ->imageWidth(35),
                 ColorColumn::make('color')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('title')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(35)
+                    ->tooltip(fn (Post $record): string => $record->title),
                 TextColumn::make('tags')
+                    ->state(function (Post $record): string {
+                        $tags = $record->tags;
+
+                        if (is_array($tags)) {
+                            return $tags[0] ?? '-';
+                        }
+
+                        if (blank($tags)) {
+                            return '-';
+                        }
+
+                        $parsed = array_filter(array_map('trim', explode(',', (string) $tags)));
+
+                        return $parsed[0] ?? '-';
+                    })
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('category.name')

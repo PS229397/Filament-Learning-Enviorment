@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\UserExporter;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
@@ -12,6 +13,9 @@ use App\Models\User;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ExportAction;
+use Filament\Actions\ExportBulkAction;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -91,7 +95,19 @@ class UserResource extends Resource
                     ->icon('heroicon-o-trash'),
             ])
             ->toolbarActions([
-                    DeleteBulkAction::make(),
+                ExportAction::make()
+                    ->exporter(UserExporter::class)
+                    ->formats([
+                        ExportFormat::Csv
+                    ]),
+                ExportBulkAction::make()
+                    ->label('Export selected users')
+                    ->exporter(UserExporter::class)
+                    ->formats([
+                        ExportFormat::Csv
+                    ]),
+                DeleteBulkAction::make()
+                    ->label('Delete selected users'),
             ]);
     }
 

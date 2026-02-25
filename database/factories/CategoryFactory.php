@@ -16,8 +16,14 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $name = ucfirst(fake()->unique()->word());
+        $createdAt = fake()->dateTimeBetween('-1 month', 'now');
+
         return [
-            //
+            'name' => $name,
+            'slug' => fake()->unique()->slug(),
+            'created_at' => $createdAt,
+            'updated_at' => fake()->dateTimeBetween($createdAt, 'now'),
         ];
     }
 }
